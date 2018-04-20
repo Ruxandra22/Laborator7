@@ -1,7 +1,26 @@
 package ro.pub.cs.systems.eim.lab07.calculatorwebservice.network;
 
 import android.os.AsyncTask;
+import android.util.Log;
 import android.widget.TextView;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
+
+import cz.msebera.android.httpclient.NameValuePair;
+import cz.msebera.android.httpclient.client.HttpClient;
+import cz.msebera.android.httpclient.client.ResponseHandler;
+import cz.msebera.android.httpclient.client.entity.UrlEncodedFormEntity;
+import cz.msebera.android.httpclient.client.methods.HttpGet;
+import cz.msebera.android.httpclient.client.methods.HttpPost;
+import cz.msebera.android.httpclient.impl.client.BasicResponseHandler;
+import cz.msebera.android.httpclient.impl.client.DefaultHttpClient;
+import cz.msebera.android.httpclient.message.BasicNameValuePair;
+import cz.msebera.android.httpclient.protocol.HTTP;
+import ro.pub.cs.systems.eim.lab07.calculatorwebservice.general.Constants;
+
 
 public class CalculatorWebServiceAsyncTask extends AsyncTask<String, Void, String> {
 
@@ -20,10 +39,63 @@ public class CalculatorWebServiceAsyncTask extends AsyncTask<String, Void, Strin
 
         // TODO exercise 4
         // signal missing values through error messages
+        String error = null;
+        if(operator1 == null || operator2 == null) {
+            error = "Missing one operator";
+        }
+        if(error != null) {
+            return error;
+        }
 
         // create an instance of a HttpClient object
+        HttpClient httpClient = new DefaultHttpClient();
 
         // get method used for sending request from methodsSpinner
+
+        switch(method) {
+
+            case Constants.GET_OPERATION:
+                HttpGet httpGet = new HttpGet(Constants.GET_WEB_SERVICE_ADDRESS
+                        + "?" + Constants.OPERATION_ATTRIBUTE + "=" + operation
+                        + "&" + Constants.OPERATOR1_ATTRIBUTE + "=" + operator1
+                        + "&" + Constants.OPERATOR2_ATTRIBUTE + "=" + operator2);
+                ResponseHandler<String> responseHandlerGet = new BasicResponseHandler();
+                try {
+                    String content = httpClient.execute(httpGet, responseHandlerGet);
+                    return content;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                break;
+
+            case Constants.POST_OPERATION:
+
+                HttpPost httpPost = new HttpPost(Constants.POST_WEB_SERVICE_ADDRESS);
+                List<NameValuePair> paramsList = new ArrayList<>();
+                paramsList.add(new BasicNameValuePair(Constants.OPERATION_ATTRIBUTE, operation));
+                paramsList.add(new BasicNameValuePair(Constants.OPERATOR1_ATTRIBUTE, operator1));
+                paramsList.add(new BasicNameValuePair(Constants.OPERATOR2_ATTRIBUTE, operator2));
+                try {
+                    UrlEncodedFormEntity urlEncodedFormEntity = new UrlEncodedFormEntity(paramsList, HTTP.UTF_8);
+                    httpPost.setEntity(urlEncodedFormEntity);
+                } catch (UnsupportedEncodingException unsupportedEncodingException) {
+                    Log.e(Constants.TAG, unsupportedEncodingException.getMessage());
+                    if (Constants.DEBUG) {
+                        unsupportedEncodingException.printStackTrace();
+                    }
+                }
+
+                ResponseHandler<String> responseHandlerPost = new BasicResponseHandler();
+                try {
+                    String content = httpClient.execute(httpPost, responseHandlerPost);
+                    return content;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                break;
+
+        }
 
         // 1. GET
         // a) build the URL into a HttpGet object (append the operators / operations to the Internet address)
@@ -43,6 +115,7 @@ public class CalculatorWebServiceAsyncTask extends AsyncTask<String, Void, Strin
     @Override
     protected void onPostExecute(String result) {
         // display the result in resultTextView
+        resultTextView.setText(result);
     }
 
 }
